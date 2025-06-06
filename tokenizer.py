@@ -1,6 +1,9 @@
 import json
 from collections import Counter
 from konlpy.tag import Okt
+import torch
+
+
 
 class CustomTokenizer:
     # vocab, 특수 토큰 등 초기화
@@ -130,27 +133,105 @@ class CustomTokenizer:
             raise ValueError(f"[tokenize] 알 수 없는 tokenizer_type: {self.tokenizer_type}")
 
 
+    def apply_bpe_merges(self, tokens):
+        merged = tokens[:]
+        made_merge = True
+        while made_merge:
+            made_merge = False
+            for i in range(len(merged) - 1):
+                pair = merged[i] + merged[i + 1]
+                if pair in self.vocab:
+                    merged = merged[:i] + [pair] + merged[i + 2:]
+                    made_merge = True
+                    break
+        return merged
+
+
     # input_ids 등 생성                  
-    def encode(self, text, max_length=32):
-        pass
+    def encode(self, text, text_pair=None, max_length=32, truncation=True):
+        # 1. 토큰화
+        tokens_a = self.tokenize(text)
+        tokens_b = self.tokenize(text_pair) if text_pair else []
+        
+        # 1.1 BPE 병합 적용
+        if self.tokenizer_type == 'bpe':
+            tokens_a = self.apply_bpe_merges(tokens_a)
+            if text_pair:
+                tokens_b = self.apply_bpe_merges(tokens_b)
+
+        # 2. [CLS], [SEP] 추가
+        tokens = ['[CLS]'] + tokens_a + ['[SEP]']
+        token_type_ids = [0] * len(tokens)
+
+        if text_pair:
+            tokens += tokens_b + ['[SEP]']
+            token_type_ids += [1] * (len(tokens_b) + 1)
+
+        # 3. 토큰 → ID (vocab에 없으면 [UNK])
+        input_ids = [self.vocab.get(tok, self.vocab['[UNK]']) for tok in tokens]
+
+        # 4. attention_mask
+        attention_mask = [1] * len(input_ids)
+
+        # 5. 길이 맞추기
+        pad_len = max_length - len(input_ids)
+        if pad_len > 0:
+            input_ids += [self.vocab['[PAD]']] * pad_len
+            attention_mask += [0] * pad_len
+            token_type_ids += [0] * pad_len
+        elif truncation:
+            input_ids = input_ids[:max_length]
+            attention_mask = attention_mask[:max_length]
+            token_type_ids = token_type_ids[:max_length]
+        else:
+            raise ValueError("길이 초과: truncation=False일 때 max_length보다 긴 입력입니다.")
+
+        return input_ids, attention_mask, token_type_ids
+
+
 
 
     # tokenizer(text) 호출 시 동작         
-    def __call__(self, text, max_length=32):
-        pass
-        '''
-        input_ids, attention_mask, token_type_ids = self.encode(text, max_length)
-        return {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
-            'token_type_ids': token_type_ids
-        }'''
+    def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt'):
+        input_ids, attention_mask, token_type_ids = self.encode(text, text_pair, max_length)
+
+        if return_tensors == 'pt':
+            return {
+                'input_ids': torch.tensor([input_ids]),
+                'attention_mask': torch.tensor([attention_mask]),
+                'token_type_ids': torch.tensor([token_type_ids])
+            }
+        else:
+            return {
+                'input_ids': input_ids,
+                'attention_mask': attention_mask,
+                'token_type_ids': token_type_ids
+            }
 
 
     # 숫자 → 텍스트 복원      
     def decode(self, input_ids):
-        pass                
-    
+        # 1. ID → 토큰
+        inv_vocab = {v: k for k, v in self.vocab.items()}
+        tokens = [inv_vocab.get(i, '[UNK]') for i in input_ids]
+
+        # 2. 특수 토큰 제거
+        tokens = [t for t in tokens if t not in self.special_tokens]
+
+        # 3. BPE 처리
+        if self.tokenizer_type == 'bpe':
+            text = ''
+            for token in tokens:
+                if token.endswith('</w>'):
+                    text += token.replace('</w>', '') + ' '
+                else:
+                    text += token
+            return text.strip()
+
+        else:  # freq / okt
+            return ' '.join(tokens).strip()
+            
+        
 
     #실험 및 재현을 위한 저장
     def save_vocab(self, file_path):
