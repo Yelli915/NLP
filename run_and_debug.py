@@ -29,7 +29,7 @@ def test_tokenizer(tokenizer_type):
         "나는 학교에 갔다.",
         "오늘은 날씨가 좋다.",
         "학교에 다시 갔다.",
-        "나는 오늘 학교에 갔다."
+
     ]
     
     test_text = "나는 오늘 학교에 갔다."
@@ -54,7 +54,7 @@ def test_tokenizer(tokenizer_type):
     print("\n✅ encode 결과:")
     print("input_ids      :", input_ids)
     print("attention_mask :", attention_mask)
-    print("token_type_ids :", token_type_ids)
+    print("token_type_ids++ :", token_type_ids)
     
     # __call__
     inputs = tokenizer(test_text, max_length=20, return_tensors='pt')

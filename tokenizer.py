@@ -146,9 +146,41 @@ class CustomTokenizer:
                     break
         return merged
 
-
-    # input_ids 등 생성                  
+             
     def encode(self, text, text_pair=None, max_length=32, truncation=True):
+        """"
+        주어진 텍스트를 BERT 모델 입력 형식 (input_ids, attention_mask, token_type_ids)으로 인코딩한다.
+
+        Args:
+            text (str): 입력 텍스트. 하나 이상의 문장으로 구성될 수 있음.
+            text_pair (str, optional): 두 번째 문장. 기본값은 None. 사용하지 않으면 단일 문장 처리됨.
+            max_length (int): 출력 시퀀스의 최대 길이. 기본값은 32.
+            truncation (bool): max_length보다 길 경우 자를지 여부. 기본값은 True.
+
+        Returns:
+            Tuple[List[int], List[int], List[int]]:
+                - input_ids: 토큰을 vocab 인덱스로 매핑한 리스트.
+                - attention_mask: 실제 토큰은 1, 패딩된 토큰은 0으로 표시.
+                - token_type_ids: 문장 구분을 위한 타입 인덱스. 현재 모두 0으로 구성됨.
+
+        Notes:
+            - BPE 토크나이저를 사용하는 경우, 토큰화 후 merge 규칙이 적용된다.
+            - 입력 텍스트는 '[CLS]'로 시작하고 각 문장은 '[SEP]'로 끝난다.
+            - text_pair가 있을 경우 두 번째 문장도 '[SEP]'로 끝나며 token_type_id는 1로 설정된다.
+            - vocab에 없는 토큰은 '[UNK]'로 처리된다.
+            - 패딩은 '[PAD]'로 채워지며 attention_mask에서 0으로 처리된다.
+
+        Preconditions:
+            - self.vocab은 학습이 완료되어 있어야 함.
+            - self.tokenizer_type은 'bpe', 'freq', 'okt' 중 하나여야 함.
+            - text는 str 타입이어야 하며 None이 아니어야 함.
+
+        Postconditions:
+            - 리턴되는 세 개의 리스트 길이는 모두 max_length와 동일함.
+            - 인코딩된 input_ids에는 반드시 '[CLS]'(2)와 '[SEP]'(3) 토큰이 포함되어야 함.
+            - attention_mask는 input_ids에서 실제 토큰은 1, 패딩은 0으로 표시됨.
+            - token_type_ids는 현재는 모든 문장에 대해 0으로 고정됨.
+        """
         # 1. 토큰화
         tokens_a = self.tokenize(text)
         tokens_b = self.tokenize(text_pair) if text_pair else []
@@ -158,6 +190,10 @@ class CustomTokenizer:
             tokens_a = self.apply_bpe_merges(tokens_a)
             if text_pair:
                 tokens_b = self.apply_bpe_merges(tokens_b)
+                
+                
+        print(tokens_a)
+        print(tokens_b)
 
         # 2. [CLS], [SEP] 추가
         tokens = ['[CLS]'] + tokens_a + ['[SEP]']
@@ -193,6 +229,36 @@ class CustomTokenizer:
 
     # tokenizer(text) 호출 시 동작         
     def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt'):
+        """
+        텍스트를 BERT 입력 형식으로 인코딩하고, 딕셔너리 형태로 반환한다.
+        tokenizer(text)처럼 바로 호출할 수 있도록 정의된 special method이다.
+
+        Args:
+            text (str): 입력 문장.
+            text_pair (str, optional): 두 번째 문장. 문장쌍 입력이 필요한 경우 사용.
+            max_length (int): 출력 길이 제한. 기본값은 32.
+            return_tensors (str): 반환 타입. 'pt'는 PyTorch 텐서 형태로 반환. 'np' 또는 'list'는 미지원 (현재는 'pt'만 지원).
+
+        Returns:
+            dict: 다음 key를 포함한 딕셔너리 반환
+                - 'input_ids': torch.LongTensor of token ids
+                - 'attention_mask': torch.LongTensor (1은 실제 토큰, 0은 패딩)
+                - 'token_type_ids': torch.LongTensor (문장 구분용, 현재 두 번째 문장이 있을 경우 1로 설정됨)
+
+        Notes:
+            - 내부적으로 self.encode()를 호출하여 토큰 인덱스를 생성한다.
+            - return_tensors가 'pt'인 경우 PyTorch 텐서로 변환한다.
+            - 향후 TensorFlow, NumPy 대응은 확장 가능.
+
+        Preconditions:
+            - self.encode() 함수가 정상 작동해야 함.
+            - text는 str 타입이어야 하며 None이 아니어야 함.
+            - vocab이 사전에 학습되어 있어야 함.
+
+        Postconditions:
+            - 반환되는 딕셔너리는 3개의 key ('input_ids', 'attention_mask', 'token_type_ids')를 포함.
+            - 각 값은 동일한 길이의 torch.Tensor로 구성됨.
+        """
         input_ids, attention_mask, token_type_ids = self.encode(text, text_pair, max_length)
 
         if return_tensors == 'pt':
@@ -211,6 +277,32 @@ class CustomTokenizer:
 
     # 숫자 → 텍스트 복원      
     def decode(self, input_ids):
+        """
+        숫자 ID 시퀀스를 원래 텍스트로 디코딩한다.
+
+        Args:
+            input_ids (List[int]): 토큰 ID 리스트. 일반적으로 모델 출력이나 tokenizer.encode() 결과.
+
+        Returns:
+            str: 복원된 자연어 문장.
+
+        Process:
+            1. input_ids를 토큰 문자열로 변환 (ID → 토큰)
+            2. [PAD], [CLS], [SEP], [UNK] 등 특수 토큰 제거
+            3. BPE 토크나이저일 경우, </w>로 끝나는 서브워드들을 공백 기준으로 재결합
+            4. freq 또는 okt 방식일 경우, 단순 공백 연결
+
+        Notes:
+            - BPE의 경우 </w>는 서브워드 경계를 의미하며, 이를 기준으로 단어 경계를 복원함.
+            - vocab이 존재하지 않거나, 잘못된 input_ids가 들어오면 [UNK]로 복원될 수 있음.
+
+        Preconditions:
+            - self.vocab은 학습되어 있어야 하며, input_ids 내 ID들은 해당 vocab에 존재하거나 예외처리 되어야 함.
+            - self.special_tokens는 [PAD], [CLS], [SEP], [UNK], [MASK] 등을 포함해야 함.
+
+        Postconditions:
+            - 출력 문자열은 사람이 읽을 수 있는 형태의 문장임 (완전한 원문 복원은 아님).
+        """
         # 1. ID → 토큰
         inv_vocab = {v: k for k, v in self.vocab.items()}
         tokens = [inv_vocab.get(i, '[UNK]') for i in input_ids]
