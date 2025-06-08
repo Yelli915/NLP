@@ -141,7 +141,7 @@ class CustomTokenizer:
         return merged
 
     # input_ids 등 생성                  
-    def encode(self, text, text_pair=None, max_length=32, truncation=True):
+    def encode(self, text, text_pair=None, max_length=32, padding=True, truncation=True):
         # 1. 토큰화
         tokens_a = self.tokenize(text)
         tokens_b = self.tokenize(text_pair) if text_pair else []
@@ -167,15 +167,17 @@ class CustomTokenizer:
         attention_mask = [1] * len(input_ids)
 
         # 5. 길이 맞추기
-        pad_len = max_length - len(input_ids)
-        if pad_len > 0:
+        if padding and len(input_ids) < max_length:
+            pad_len = max_length - len(input_ids)
             input_ids += [self.vocab['[PAD]']] * pad_len
             attention_mask += [0] * pad_len
             token_type_ids += [0] * pad_len
+            
         elif truncation:
             input_ids = input_ids[:max_length]
             attention_mask = attention_mask[:max_length]
             token_type_ids = token_type_ids[:max_length]
+            
         else:
             raise ValueError("길이 초과: truncation=False일 때 max_length보다 긴 입력입니다.")
 
@@ -186,6 +188,7 @@ class CustomTokenizer:
         input_ids, attention_mask, token_type_ids = self.encode(
             text, text_pair, max_length=max_length, padding=padding, truncation=truncation
         )
+        
         if return_tensors == 'pt':
             return {
                 'input_ids': torch.tensor([input_ids]),
