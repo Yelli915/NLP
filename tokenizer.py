@@ -182,9 +182,10 @@ class CustomTokenizer:
         return input_ids, attention_mask, token_type_ids
 
     # tokenizer(text) 호출 시 동작         
-    def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt'):
-        input_ids, attention_mask, token_type_ids = self.encode(text, text_pair, max_length)
-
+    def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt', padding=True, truncation=True):
+        input_ids, attention_mask, token_type_ids = self.encode(
+            text, text_pair, max_length=max_length, padding=padding, truncation=truncation
+        )
         if return_tensors == 'pt':
             return {
                 'input_ids': torch.tensor([input_ids]),
