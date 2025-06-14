@@ -18,9 +18,7 @@ from tokenizer import CustomTokenizer
 # tok = tokenizer.tokenize("학교에 다시 간다.오늘은 날씨가 좋다.")
 # print(tok)
 
-# 테스트용 데이터
 from tokenizer import CustomTokenizer
-
 
 def test_tokenizer(tokenizer_type):
     print(f"\n🧪 테스트 중: {tokenizer_type.upper()} 방식")
@@ -36,12 +34,10 @@ def test_tokenizer(tokenizer_type):
     
     tokenizer = CustomTokenizer(vocab_size=50, tokenizer_type=tokenizer_type)
     
-    # 학습
     if tokenizer_type == 'freq':
         tokenizer.train_freq(corpus)
     elif tokenizer_type == 'okt':
-        #tokenizer.train_okt(corpus)
-        pass
+        tokenizer.train_okt(corpus)
     elif tokenizer_type == 'bpe':
         tokenizer.train_bpe(corpus)
     
@@ -49,25 +45,21 @@ def test_tokenizer(tokenizer_type):
     for token, idx in tokenizer.vocab.items():
         print(f"{idx:>2} : {token}")
     
-    # encode
     input_ids, attention_mask, token_type_ids = tokenizer.encode(test_text, max_length=20)
     print("\n✅ encode 결과:")
     print("input_ids      :", input_ids)
     print("attention_mask :", attention_mask)
     print("token_type_ids :", token_type_ids)
     
-    # __call__
     inputs = tokenizer(test_text, max_length=20, return_tensors='pt')
     print("✅ __call__() 결과:")
     for k, v in inputs.items():
         print(f"{k:15}: {v}")
     
-    # decode
     print("✅ decode 결과:")
     print(tokenizer.decode(input_ids))
 
-
-# 세 가지 모두 테스트
-#for mode in ['freq', 'okt', 'bpe']:
-for mode in ['freq',  'bpe']:
+# 세 방식 모두 실행
+for mode in ['freq', 'okt', 'bpe']:
     test_tokenizer(mode)
+
