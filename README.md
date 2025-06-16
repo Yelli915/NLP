@@ -30,22 +30,28 @@
 
 ##  현재까지 완료된 작업
 
-- `CustomTokenizer` 클래스 작성
-- 세 가지 tokenizer 방식 구현 (freq, okt, bpe)
-- vocab 학습 테스트 완료 (`run_and_debug.ipynb`)
-- 데이터셋 split (train/val/test) 완료 및 클래스 분포 확인
-- vocab 출력 확인
+🔹 핵심 클래스 및 기능 구현
+- CustomTokenizer 클래스 전체 구조 작성됨
+- __init__: 특수 토큰 포함한 초기화 구현 완료 (vocab_size, tokenizer_type 사용)
+- tokenize(): freq, okt, bpe 방식 각각 구현
+- train_freq(), train_okt(), train_bpe() 각 방식에 따른 vocab 학습 구현 완료
+- apply_bpe_merges(): BPE 병합 방식 구현
+- encode(): 텍스트를 input_ids, attention_mask, token_type_ids로 변환 완성
+- __call__(): HuggingFace 스타일의 callable 구현 완료 (return_tensors 포함)
+- decode(): input_ids → 텍스트 복원 기능 구현 완료
+- save_vocab() / load_vocab(): vocab 저장 및 불러오기 구현 완료
 
----
+🔹 테스트 코드
+- run_and_debug.py에서 freq, bpe 방식에 대한 테스트 성공적으로 수행됨
+- encode, __call__, decode 결과 출력 확인 가능
+- okt 주석 처리 된 것을tokenize() 및 train_okt()는 코드상 구현 완료
+
+
 
 ## 🔧 향후 개발 과제
 
-- `encode(text)` 함수 구현
-- `decode(input_ids)` 함수 구현 
-- `__call__()` 함수 구현
-- embedding layer 구성. 
-- 토크나이저 테스트 자동화 코드
-- kobert 모델 학습에 실제 적용해보기 및 코드 연결.
+- 토크나이저 테스트 자동화
+- KoBERT 프로젝트 연동
 - 03 _Custom_KoBERT_Tokenizer_Project.ipynb , 04_Custom_KoBERT_Fine_Tuning_Project.ipynb를 연결 후 우리 tokenizer로 매끄럽게 이어지는지 확인.
 
 ---
