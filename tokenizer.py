@@ -9,8 +9,8 @@ class CustomTokenizer:
         self.vocab_size = vocab_size
         self.vocab={}
         self.special_tokens_map = {
-        '[PAD]': 0,
-        '[UNK]': 1,
+        '[UNK]': 0,
+        '[PAD]': 1,
         '[CLS]': 2,
         '[SEP]': 3,
         '[MASK]': 4,
