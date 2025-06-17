@@ -142,7 +142,7 @@ class CustomTokenizer:
 
 
              
-    def encode(self, text, text_pair=None, max_length=32, truncation=True):
+    def encode(self, text, text_pair=None, max_length=32, padding=True, truncation=True):
         """"
         주어진 텍스트를 BERT 모델 입력 형식 (input_ids, attention_mask, token_type_ids)으로 인코딩한다.
 
@@ -223,7 +223,7 @@ class CustomTokenizer:
 
     # tokenizer(text) 호출 시 동작         
 
-    def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt'):
+    def __call__(self, text, text_pair=None, max_length=32, return_tensors='pt', padding=True, truncation=True):
         """
         텍스트를 BERT 입력 형식으로 인코딩하고, 딕셔너리 형태로 반환한다.
         tokenizer(text)처럼 바로 호출할 수 있도록 정의된 special method이다.
