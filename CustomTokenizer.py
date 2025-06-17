@@ -244,7 +244,7 @@ class CustomTokenizer:
         #     text, text_pair, max_length=max_length, padding=padding, truncation=truncation
         # )
         
-        input_ids = self.encode(
+        tokens, input_ids = self.encode(
             text, text_pair, max_length=max_length, padding=padding, truncation=truncation
         )
         
@@ -252,6 +252,8 @@ class CustomTokenizer:
         attention_mask = [1] * len(input_ids)
 
         # 5. 길이 맞추기
+        token_type_ids = [0] * len(tokens)
+        
         if padding and len(input_ids) < max_length:
             pad_len = max_length - len(input_ids)
             input_ids += [self.vocab['[PAD]']] * pad_len
