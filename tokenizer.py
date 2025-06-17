@@ -186,9 +186,6 @@ class CustomTokenizer:
             if text_pair:
                 tokens_b = self.apply_bpe_merges(tokens_b)
                 
-                
-        print(tokens_a)
-        print(tokens_b)
 
         # 2. [CLS], [SEP] 추가
         tokens = ['[CLS]'] + tokens_a + ['[SEP]']
@@ -219,7 +216,7 @@ class CustomTokenizer:
         else:
             raise ValueError("길이 초과: truncation=False일 때 max_length보다 긴 입력입니다.")
 
-        return input_ids, attention_mask, token_type_ids
+        return tokens, input_ids, attention_mask, token_type_ids
 
     # tokenizer(text) 호출 시 동작         
 
